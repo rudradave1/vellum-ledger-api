@@ -6,6 +6,7 @@ import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -39,7 +40,7 @@ data class Message(
 
 @Serializable
 data class OpenRouterResponse(
-    val choices: List<Choice>
+    val choices: List<Choice>? = null
 )
 
 @Serializable
@@ -52,7 +53,7 @@ data class TransactionSummaryDto(
     val amount: Double,
     val type: String,
     val category: String,
-    val note: String,
+    val note: String? = null,
     val createdAt: Long
 )
 
@@ -107,25 +108,43 @@ fun Route.insightRoutes(insightDao: InsightDao) {
                 val systemPrompt = "You are a personal finance assistant. Analyze these transactions and give a 3-sentence monthly summary. Focus on total spending, biggest category, and one actionable suggestion. Be direct and specific with numbers."
                 
                 // 4. Call OpenRouter
-                val response: OpenRouterResponse = try {
-                    client.post("https://openrouter.ai/api/v1/chat/completions") {
-                        header(HttpHeaders.Authorization, "Bearer $apiKey")
-                        contentType(ContentType.Application.Json)
-                        setBody(OpenRouterRequest(
-                            model = "mistralai/mistral-7b-instruct",
-                            messages = listOf(
-                                Message("system", systemPrompt),
-                                Message("user", "Here are my transactions:\n$transactionData")
-                            )
-                        ))
-                    }.body()
-                } catch (e: Exception) {
-                    call.respond(HttpStatusCode.BadGateway, "Failed to connect to AI service: ${e.message}")
+                val openRouterHttpResponse = client.post("https://openrouter.ai/api/v1/chat/completions") {
+                    header("Authorization", "Bearer ${System.getenv("OPENROUTER_API_KEY")}")
+                    header("Content-Type", "application/json")
+                    setBody(OpenRouterRequest(
+                        model = "mistralai/mistral-7b-instruct",
+                        messages = listOf(
+                            Message("system", systemPrompt),
+                            Message("user", "Here are my transactions:\n$transactionData")
+                        )
+                    ))
+                }
+
+                val responseBody = openRouterHttpResponse.bodyAsText()
+                println("OpenRouter raw response: $responseBody")
+
+                if (openRouterHttpResponse.status.value != 200) {
+                    println("OpenRouter error status: ${openRouterHttpResponse.status.value}")
+                    call.respond(
+                        HttpStatusCode.BadGateway,
+                        "AI service error: ${openRouterHttpResponse.status.value}"
+                    )
                     return@post
                 }
 
-                val insight = response.choices.firstOrNull()?.message?.content 
-                    ?: "Could not generate insight."
+                val parsed = try {
+                    Json { ignoreUnknownKeys = true }.decodeFromString<OpenRouterResponse>(responseBody)
+                } catch (e: Exception) {
+                    println("OpenRouter parse error: ${e.message}")
+                    call.respond(HttpStatusCode.BadGateway, "Failed to parse AI response")
+                    return@post
+                }
+
+                val insight = parsed.choices?.firstOrNull()?.message?.content
+                    ?: run {
+                        call.respond(HttpStatusCode.BadGateway, "Empty AI response")
+                        return@post
+                    }
 
                 // 5. Save and Return
                 insightDao.saveInsight(userId, insight)
