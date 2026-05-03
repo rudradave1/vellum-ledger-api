@@ -112,7 +112,7 @@ fun Route.insightRoutes(insightDao: InsightDao) {
                     header("Authorization", "Bearer ${System.getenv("OPENROUTER_API_KEY")}")
                     header("Content-Type", "application/json")
                     setBody(OpenRouterRequest(
-                        model = "mistralai/mistral-7b-instruct",
+                        model = "openrouter/free",
                         messages = listOf(
                             Message("system", systemPrompt),
                             Message("user", "Here are my transactions:\n$transactionData")
