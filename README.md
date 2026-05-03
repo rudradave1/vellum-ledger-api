@@ -167,4 +167,4 @@ src/main/kotlin/com/vellum/api/
 
 Mobile client: [VellumLedger](https://github.com/rudradave1/VellumLedger)
 
-MIT License
+[MIT License](https://github.com/rudradave1/vellum-ledger-api/LICENCE.md)
