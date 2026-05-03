@@ -3,7 +3,7 @@ WORKDIR /app
 COPY . .
 RUN gradle buildFatJar --no-daemon
 
-FROM openjdk:17-slim
+FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 COPY --from=build /app/build/libs/*-all.jar app.jar
 EXPOSE 8080
