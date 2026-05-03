@@ -1,22 +1,56 @@
 # Vellum Ledger API
 
-Sync backend for VellumLedger. Ktor + PostgreSQL + JWT. Handles push/pull transaction sync with timestamp-based conflict resolution.
+Hit `http://localhost:8080/health` to verify.
 
-## Tech Stack
-- **Language:** Kotlin
-- **Runtime:** JVM 17
-- **Framework:** Ktor 2.3.x
-- **Database:** PostgreSQL + Exposed ORM
-- **Auth:** JWT (jjwt)
-- **Deploy target:** Railway
+---
 
-## API Endpoints
-- `GET /health` - Health check
-- `POST /auth/register` - Register a new user
-- `POST /auth/login` - Login and get JWT
-- `POST /transactions/push` - Push transactions to server (Auth required)
-- `GET /transactions/pull` - Pull transactions from server (Auth required)
+## Deploying to Railway
 
+1. Fork this repo
+2. Create a new Railway project → Deploy from GitHub
+3. Add a PostgreSQL plugin
+4. Set environment variables in Railway dashboard:
+
+```
+DATABASE_URL        → from Railway PostgreSQL plugin
+DATABASE_USER       → postgres
+DATABASE_PASSWORD   → from Railway PostgreSQL plugin
+JWT_SECRET          → generate with: openssl rand -base64 32
+JWT_ISSUER          → vellum-ledger
+JWT_AUDIENCE        → vellum-ledger-users
+```
+
+5. Railway builds via `Dockerfile` automatically on push to main
+
+---
+
+## Project structure
+
+```
+src/main/kotlin/com/vellum/api/
+├── Application.kt
+├── plugins/
+│   ├── Auth.kt           ← JWT configuration
+│   ├── Routing.kt        ← route registration
+│   ├── Serialization.kt
+│   └── HTTP.kt           ← CORS, status pages
+├── routes/
+│   ├── AuthRoutes.kt
+│   └── TransactionRoutes.kt
+├── domain/
+│   ├── model/            ← Transaction, User, SyncModels
+│   └── service/          ← AuthService, TransactionService
+└── data/
+    ├── DatabaseFactory.kt ← HikariCP + Exposed setup
+    ├── tables/            ← UsersTable, TransactionsTable
+    └── dao/               ← UserDao, TransactionDao
+```
+
+---
+
+Mobile client: [VellumLedger](https://github.com/rudradave1/VellumLedger)
+
+[MIT License](https://github.com/rudradave1/vellum-ledger-api/LICENCE.md)
 ## Local Setup
 1. Create a local PostgreSQL database: `createdb vellum_ledger`
 2. Set environment variables:
