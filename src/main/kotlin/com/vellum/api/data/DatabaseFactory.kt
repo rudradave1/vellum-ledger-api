@@ -14,8 +14,6 @@ object DatabaseFactory {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun init() {
-        println("DATABASE_URL raw value: ${System.getenv("DATABASE_URL")}")
-
         val database = try {
             Database.connect(createHikariDataSource())
         } catch (e: Exception) {
@@ -35,21 +33,23 @@ object DatabaseFactory {
     }
 
     private fun createHikariDataSource(): HikariDataSource {
-        val rawUrl = System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/vellum_ledger"
+        val rawUrl = System.getenv("DATABASE_URL") ?: throw IllegalStateException("DATABASE_URL not set")
         
-        val jdbcUrl = if (rawUrl.startsWith("postgresql://")) {
-            rawUrl.replace("postgresql://", "jdbc:postgresql://")
-        } else {
-            rawUrl
-        }
+        println("Raw DATABASE_URL: $rawUrl")
         
+        // Convert postgres:// or postgresql:// to jdbc:postgresql://
+        val jdbcUrl = rawUrl
+            .replace("^postgres://".toRegex(), "jdbc:postgresql://")
+            .replace("^postgresql://".toRegex(), "jdbc:postgresql://")
+        
+        println("JDBC URL: $jdbcUrl")
+
         val config = HikariConfig().apply {
             driverClassName = "org.postgresql.Driver"
             setJdbcUrl(jdbcUrl)
-            maximumPoolSize = 10
+            maximumPoolSize = 5
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-            connectionTimeout = 2000
             validate()
         }
         return HikariDataSource(config)
