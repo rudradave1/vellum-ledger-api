@@ -1,7 +1,6 @@
 package com.vellum.api.routes
 
 import com.vellum.api.data.dao.InsightDao
-import com.vellum.api.domain.model.Transaction
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -48,7 +47,17 @@ data class Choice(
     val message: Message
 )
 @Serializable
-data class InsightRequest(val transactions: List<Transaction>)
+data class TransactionSummaryDto(
+    val id: String,
+    val amount: Double,
+    val type: String,
+    val category: String,
+    val note: String,
+    val createdAt: Long
+)
+
+@Serializable
+data class InsightRequest(val transactions: List<TransactionSummaryDto>)
 
 
 fun Route.insightRoutes(insightDao: InsightDao) {
