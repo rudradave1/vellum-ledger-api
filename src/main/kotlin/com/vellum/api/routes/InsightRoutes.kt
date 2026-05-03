@@ -47,6 +47,9 @@ data class OpenRouterResponse(
 data class Choice(
     val message: Message
 )
+@Serializable
+data class InsightRequest(val transactions: List<Transaction>)
+
 
 fun Route.insightRoutes(insightDao: InsightDao) {
     authenticate("auth-jwt") {
@@ -67,12 +70,14 @@ fun Route.insightRoutes(insightDao: InsightDao) {
                 }
 
                 // 2. Read transactions from body
-                val transactions = try {
-                    call.receive<List<Transaction>>()
+            
+                val request = try {
+                    call.receive<InsightRequest>()
                 } catch (e: Exception) {
                     call.respond(HttpStatusCode.BadRequest, "Invalid transaction list format")
                     return@post
                 }
+                val transactions = request.transactions
 
                 if (transactions.isEmpty()) {
                     call.respond(HttpStatusCode.BadRequest, "No transactions provided for analysis")
