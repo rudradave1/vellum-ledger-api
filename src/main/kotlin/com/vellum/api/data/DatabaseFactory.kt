@@ -14,35 +14,17 @@ object DatabaseFactory {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun init() {
-        val database = try {
-            Database.connect(createHikariDataSource())
-        } catch (e: Exception) {
-            logger.warn("Failed to connect to PostgreSQL, falling back to H2 in-memory database: ${e.message}")
-            Database.connect("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;", driver = "org.h2.Driver")
-        }
-
-        transaction(database) {
-            println("Running database migrations...")
-            SchemaUtils.createMissingTablesAndColumns(
-                UsersTable,
-                TransactionsTable,
-                InsightRequestsTable
-            )
-            println("Database migrations completed.")
-        }
-    }
-
-    private fun createHikariDataSource(): HikariDataSource {
-        val rawUrl = System.getenv("DATABASE_URL") ?: throw IllegalStateException("DATABASE_URL not set")
+        println("Starting DatabaseFactory.init()")
+        println("DATABASE_URL: ${System.getenv("DATABASE_URL")}")
         
-        println("Raw DATABASE_URL: $rawUrl")
+        val rawUrl = System.getenv("DATABASE_URL") 
+            ?: throw IllegalStateException("DATABASE_URL is not set")
         
-        // Convert postgres:// or postgresql:// to jdbc:postgresql://
         val jdbcUrl = rawUrl
             .replace("^postgres://".toRegex(), "jdbc:postgresql://")
             .replace("^postgresql://".toRegex(), "jdbc:postgresql://")
         
-        println("JDBC URL: $jdbcUrl")
+        println("Converted JDBC URL: $jdbcUrl")
 
         val config = HikariConfig().apply {
             driverClassName = "org.postgresql.Driver"
@@ -50,8 +32,23 @@ object DatabaseFactory {
             maximumPoolSize = 5
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-            validate()
         }
-        return HikariDataSource(config)
+
+        println("Connecting to PostgreSQL...")
+        val dataSource = HikariDataSource(config)
+        val database = Database.connect(dataSource)
+        println("Connected successfully")
+
+        transaction(database) {
+            println("Running migrations...")
+            SchemaUtils.create(
+                UsersTable,
+                TransactionsTable,
+                InsightRequestsTable
+            )
+            println("Migrations complete")
+        }
+        
+        println("DatabaseFactory.init() finished")
     }
 }
