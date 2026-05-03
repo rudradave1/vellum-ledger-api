@@ -14,6 +14,8 @@ object DatabaseFactory {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     fun init() {
+        println("DATABASE_URL raw value: ${System.getenv("DATABASE_URL")}")
+
         val database = try {
             Database.connect(createHikariDataSource())
         } catch (e: Exception) {
