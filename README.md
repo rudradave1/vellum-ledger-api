@@ -24,4 +24,5 @@ Sync backend for VellumLedger. Ktor + PostgreSQL + JWT. Handles push/pull transa
    - `DATABASE_USER`
    - `DATABASE_PASSWORD`
    - `JWT_SECRET`
+   - `OPENROUTER_API_KEY`
 3. Run the application: `./gradlew run`

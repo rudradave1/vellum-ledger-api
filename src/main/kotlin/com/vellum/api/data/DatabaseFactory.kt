@@ -1,5 +1,6 @@
 package com.vellum.api.data
 
+import com.vellum.api.data.tables.InsightRequestsTable
 import com.vellum.api.data.tables.TransactionsTable
 import com.vellum.api.data.tables.UsersTable
 import com.zaxxer.hikari.HikariConfig
@@ -23,7 +24,8 @@ object DatabaseFactory {
         transaction(database) {
             SchemaUtils.createMissingTablesAndColumns(
                 UsersTable,
-                TransactionsTable
+                TransactionsTable,
+                InsightRequestsTable
             )
         }
     }
