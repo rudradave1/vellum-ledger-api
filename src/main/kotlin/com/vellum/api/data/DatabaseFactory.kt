@@ -15,27 +15,8 @@ object DatabaseFactory {
 
     fun init() {
         println("Starting DatabaseFactory.init()")
-        println("DATABASE_URL: ${System.getenv("DATABASE_URL")}")
         
-        val rawUrl = System.getenv("DATABASE_URL") 
-            ?: throw IllegalStateException("DATABASE_URL is not set")
-        
-        val jdbcUrl = rawUrl
-            .replace("^postgres://".toRegex(), "jdbc:postgresql://")
-            .replace("^postgresql://".toRegex(), "jdbc:postgresql://")
-        
-        println("Converted JDBC URL: $jdbcUrl")
-
-        val config = HikariConfig().apply {
-            driverClassName = "org.postgresql.Driver"
-            setJdbcUrl(jdbcUrl)
-            maximumPoolSize = 5
-            isAutoCommit = false
-            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-        }
-
-        println("Connecting to PostgreSQL...")
-        val dataSource = HikariDataSource(config)
+        val dataSource = createHikariDataSource()
         val database = Database.connect(dataSource)
         println("Connected successfully")
 
@@ -50,5 +31,40 @@ object DatabaseFactory {
         }
         
         println("DatabaseFactory.init() finished")
+    }
+
+    private fun createHikariDataSource(): HikariDataSource {
+        val rawUrl = System.getenv("DATABASE_URL")
+            ?: throw IllegalStateException("DATABASE_URL not set")
+
+        println("Raw URL: $rawUrl")
+
+        val uri = java.net.URI(rawUrl)
+        val host = uri.host
+        val port = uri.port
+        val dbName = uri.path.removePrefix("/")
+        val userInfo = uri.userInfo ?: ":"
+        val (user, password) = userInfo.split(":")
+
+        val jdbcUrl = if (port != -1) {
+            "jdbc:postgresql://$host:$port/$dbName"
+        } else {
+            "jdbc:postgresql://$host/$dbName"
+        }
+
+        println("JDBC URL: $jdbcUrl")
+        println("User: $user")
+
+        val config = HikariConfig().apply {
+            driverClassName = "org.postgresql.Driver"
+            setJdbcUrl(jdbcUrl)
+            username = user
+            setPassword(password)
+            maximumPoolSize = 5
+            isAutoCommit = false
+            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+        }
+
+        return HikariDataSource(config)
     }
 }
