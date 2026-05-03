@@ -22,26 +22,32 @@ object DatabaseFactory {
         }
 
         transaction(database) {
+            println("Running database migrations...")
             SchemaUtils.createMissingTablesAndColumns(
                 UsersTable,
                 TransactionsTable,
                 InsightRequestsTable
             )
+            println("Database migrations completed.")
         }
     }
 
     private fun createHikariDataSource(): HikariDataSource {
+        val rawUrl = System.getenv("DATABASE_URL") ?: "jdbc:postgresql://localhost:5432/vellum_ledger"
+        
+        val jdbcUrl = if (rawUrl.startsWith("postgresql://")) {
+            rawUrl.replace("postgresql://", "jdbc:postgresql://")
+        } else {
+            rawUrl
+        }
+        
         val config = HikariConfig().apply {
             driverClassName = "org.postgresql.Driver"
-            jdbcUrl = System.getenv("DATABASE_URL")
-                ?: "jdbc:postgresql://localhost:5432/vellum_ledger"
-            username = System.getenv("DATABASE_USER") ?: "postgres"
-            password = System.getenv("DATABASE_PASSWORD") ?: "password"
+            setJdbcUrl(jdbcUrl)
             maximumPoolSize = 10
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-            // Add a short timeout for local fallback
-            connectionTimeout = 2000 
+            connectionTimeout = 2000
             validate()
         }
         return HikariDataSource(config)

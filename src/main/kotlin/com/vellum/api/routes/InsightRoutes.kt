@@ -71,12 +71,12 @@ fun Route.insightRoutes(insightDao: InsightDao) {
 
                 // 1. Rate limiting check (30 days)
                 val lastInsight = insightDao.getLastInsight(userId)
-                if (lastInsight != null) {
-                    val thirtyDaysMillis = 30L * 24 * 60 * 60 * 1000
-                    if (System.currentTimeMillis() - lastInsight.requestedAt < thirtyDaysMillis) {
-                        call.respond(HttpStatusCode.TooManyRequests, lastInsight.insight)
-                        return@post
-                    }
+                val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)
+
+                if (lastInsight != null && lastInsight.requestedAt > thirtyDaysAgo) {
+                    println("Rate limit hit: Returning cached insight for $userId")
+                    call.respond(HttpStatusCode.TooManyRequests, lastInsight.insight)
+                    return@post
                 }
 
                 // 2. Read transactions from body
