@@ -102,7 +102,7 @@ fun Route.insightRoutes(insightDao: InsightDao) {
                 }
 
                 val transactionData = transactions.joinToString("\n") {
-                    "${it.type}: ₹${"%.2f".format(it.amount)} in ${it.category} (${it.note ?: ""})"
+                    "${it.type}: ₹${"%.2f".format(it.amount)} in ${it.category}${if (!it.note.isNullOrBlank()) " (${it.note})" else ""}"
                 }
 
                 val systemPrompt = "You are a personal finance assistant. Analyze these transactions and give a 3-sentence monthly summary. Focus on total spending, biggest category, and one actionable suggestion. Be direct and specific with numbers."
